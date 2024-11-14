@@ -8,7 +8,13 @@ from typing import Any
 from homeassistant.components.bluetooth.passive_update_coordinator import (
     PassiveBluetoothCoordinatorEntity,
 )
-from homeassistant.components.light import ATTR_BRIGHTNESS, ColorMode, LightEntity
+from homeassistant.components.light import (
+    ATTR_BRIGHTNESS,
+    ATTR_EFFECT,
+    ColorMode,
+    LightEntity,
+    LightEntityFeature,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_ON
 from homeassistant.core import HomeAssistant
@@ -60,6 +66,8 @@ class ChihirosLightEntity(
     _attr_should_poll = False
     _attr_supported_color_modes = {ColorMode.BRIGHTNESS}
     _attr_color_mode = ColorMode.BRIGHTNESS
+    _attr_supported_features = LightEntityFeature.EFFECT
+    _attr_effect_list = ["Manual", "Auto"]
 
     def __init__(
         self,
@@ -107,6 +115,10 @@ class ChihirosLightEntity(
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Instruct the light to turn on."""
+        if ATTR_EFFECT in kwargs:
+            if kwargs[ATTR_EFFECT] == "Auto":
+                _LOGGER.debug("Enabling auto mode: %s", self.name)
+                await self._device.enable_auto_mode()
         if ATTR_BRIGHTNESS in kwargs:
             brightness = int((kwargs[ATTR_BRIGHTNESS] / 255) * 100)
             _LOGGER.debug("Turning on: %s to %s", self.name, brightness)
