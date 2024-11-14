@@ -14,13 +14,29 @@ from homeassistant.config_entries import ConfigFlow
 from homeassistant.const import CONF_ADDRESS
 from homeassistant.data_entry_flow import FlowResult
 
-from .chihiros_led_control.device import BaseDevice, get_model_class_from_name
+from .chihiros_led_control.device import BaseDevice, CODE2MODEL, get_model_class_from_name
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
 ADDITIONAL_DISCOVERY_TIMEOUT = 60
 
+def is_valid_device(discovery: BluetoothServiceInfoBleak) -> bool:
+    """Check if discovered device is a supported Chihiros device."""
+    if not discovery.name:
+        return False
+    device_name = discovery.name[:-12]  # Remove last 12 chars (MAC address)
+    
+    # Check if device name starts with any of our model codes
+    for model_code in CODE2MODEL.keys():
+        if device_name.startswith(model_code):
+            return True
+            
+    # If no match but has the service UUID, use fallback
+    if discovery.service_data_uuid == "6e400001-b5a3-f393-e0a9-e50e24dcca9e":
+        return True
+        
+    return False
 
 class ChihirosConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for chihiros."""
@@ -37,6 +53,8 @@ class ChihirosConfigFlow(ConfigFlow, domain=DOMAIN):
         self, discovery_info: BluetoothServiceInfoBleak
     ) -> FlowResult:
         """Handle the bluetooth discovery step."""
+        if not is_valid_device(discovery_info):
+            return self.async_abort(reason="not_supported")
         await self.async_set_unique_id(discovery_info.address)
         self._abort_if_unique_id_configured()
         model_class = get_model_class_from_name(discovery_info.name)

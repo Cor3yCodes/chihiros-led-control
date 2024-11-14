@@ -68,7 +68,6 @@ class ChihirosLightEntity(
     _attr_color_mode = ColorMode.BRIGHTNESS
     _attr_supported_features = LightEntityFeature.EFFECT
     _attr_effect_list = ["Manual", "Auto"]
-    _attr_effect = "Manual"  # Default mode
 
     def __init__(
         self,
@@ -116,31 +115,28 @@ class ChihirosLightEntity(
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Instruct the light to turn on."""
-        if ATTR_EFFECT in kwargs:
-            if kwargs[ATTR_EFFECT] == "Auto":
-                await self._device.enable_auto_mode()
-                self._attr_effect = "Auto"
-                self._attr_available = False
-                self.schedule_update_ha_state()
-                return
-            else:
-                self._attr_effect = "Manual"
-                self._attr_available = True
-
         if ATTR_BRIGHTNESS in kwargs:
             brightness = int((kwargs[ATTR_BRIGHTNESS] / 255) * 100)
             _LOGGER.debug("Turning on: %s to %s", self.name, brightness)
+            # TODO: handle error and availability False
             await self._device.set_color_brightness(brightness, self._color)
             self._attr_brightness = kwargs[ATTR_BRIGHTNESS]
         else:
             _LOGGER.debug("Turning on: %s", self.name)
             await self._device.set_color_brightness(100, self._color)
         self._attr_is_on = True
+        self._attr_available = True
         self.schedule_update_ha_state()
+        _LOGGER.debug("Turned on: %s", self.name)
+        if ATTR_EFFECT in kwargs:
+            if kwargs[ATTR_EFFECT] == "Auto":
+                _LOGGER.debug("Enabling auto mode: %s", self.name)
+                await self._device.enable_auto_mode()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Instruct the light to turn off."""
         _LOGGER.debug("Turning off: %s", self.name)
+        # TODO handle error and availability False
         await self._device.set_color_brightness(0, self._color)
         self._attr_is_on = False
         self._attr_brightness = 0
