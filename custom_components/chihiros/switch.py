@@ -70,11 +70,12 @@ class ChihirosConnectionSwitch(SwitchEntity):
             await self._device._ensure_connected()
             self._attr_is_on = True
             # Update mode state after connection
-            if hasattr(self.hass, "async_add_executor_job"):
-                await self.hass.async_add_executor_job(
-                    self.hass.helpers.entity_component.async_update_entity,
-                    "select.chihiros_mode"
-                )
+            await self.hass.services.async_call(
+                "homeassistant", 
+                "update_entity",
+                {"entity_id": "select.chihiros_mode"},
+                blocking=True
+            )
         except Exception as ex:
             _LOGGER.debug("Connection attempt failed: %s", ex)
         finally:

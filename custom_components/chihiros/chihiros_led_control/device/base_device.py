@@ -280,18 +280,38 @@ class BaseDevice(ABC):
         try:
             await self._ensure_connected()
             cmd = commands.create_query_mode_command(self.get_next_msg_id())
-            response = await self._send_command_and_read_response(cmd)
-            self._logger.debug("Mode query response: %s", response.hex())
+            self._logger.debug("Sending mode query command: %s", cmd.hex())
             
-            # The response should indicate the current mode
-            # Mode 5 with param 18 is auto mode
-            # Mode 7 is manual mode
-            if len(response) >= 6:
-                mode = response[5]
+            # Send command without expecting response first
+            await self._send_command(cmd)
+            await asyncio.sleep(0.5)  # Give device time to process
+            
+            # Now try to read the response
+            response_future = asyncio.Future()
+            
+            def notification_handler(_sender: BleakGATTCharacteristic, data: bytearray) -> None:
+                if not response_future.done():
+                    self._logger.debug("Raw mode response: %s", data.hex())
+                    response_future.set_result(data)
+            
+            original_handler = self._notification_handler
+            self._notification_handler = notification_handler
+            
+            try:
+                response = await asyncio.wait_for(response_future, timeout=2.0)
+                self._logger.debug("Mode query response received: %s", response.hex())
+                # Try both possible response formats
+                mode = response[5] if len(response) > 5 else None
                 param = response[6] if len(response) > 6 else None
-                self._logger.debug(f"Mode: {mode}, Param: {param}")
+                self._logger.debug(f"Mode byte: {mode}, Param byte: {param}")
                 return mode == 5 and param == 18
-            
+                
+            except asyncio.TimeoutError:
+                self._logger.error("No response received from mode query")
+                return False
+            finally:
+                self._notification_handler = original_handler
+                
         except Exception as ex:
             self._logger.error("Failed to query mode: %s", ex)
             return False
