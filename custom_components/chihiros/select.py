@@ -34,7 +34,7 @@ class ChihirosModeSelect(SelectEntity, RestoreEntity):
 
     _attr_options = ["Manual", "Auto"]
     _attr_has_entity_name = True
-    _attr_should_poll = True
+    _attr_should_poll = False
 
     def __init__(self, coordinator: PassiveBluetoothDataUpdateCoordinator, device) -> None:
         """Initialize the select entity."""
@@ -43,8 +43,6 @@ class ChihirosModeSelect(SelectEntity, RestoreEntity):
         self._attr_unique_id = f"{coordinator.address}_mode"
         self._attr_name = "Mode"
         self._attr_current_option = "Manual"
-        self._retry_count = 0
-        self._max_retries = 3
         
         self._attr_device_info = DeviceInfo(
             connections={(dr.CONNECTION_BLUETOOTH, coordinator.address)},
@@ -56,43 +54,31 @@ class ChihirosModeSelect(SelectEntity, RestoreEntity):
     async def async_added_to_hass(self) -> None:
         """Handle entity about to be added to hass."""
         await super().async_added_to_hass()
+        if last_state := await self.async_get_last_state():
+            self._attr_current_option = last_state.state
         await self._update_mode()
 
     async def _update_mode(self) -> None:
         """Update mode from device."""
         try:
             is_auto = await self._device.is_auto_mode()
+            _LOGGER.debug("Current device mode: %s", "Auto" if is_auto else "Manual")
             self._attr_current_option = "Auto" if is_auto else "Manual"
             self.async_write_ha_state()
-            self._retry_count = 0
         except Exception as ex:
-            self._retry_count += 1
-            if self._retry_count < self._max_retries:
-                _LOGGER.debug("Retrying mode update: %s", ex)
-                await asyncio.sleep(1)
-                await self._update_mode()
-            else:
-                _LOGGER.error("Failed to verify mode: %s", ex)
+            _LOGGER.error("Failed to verify mode: %s", ex)
 
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""
+        _LOGGER.debug("Changing mode to: %s", option)
         try:
             if option == "Auto":
                 await self._device.enable_auto_mode()
             else:
                 await self._device.disable_auto_mode()
             
-            # Give device time to change modes and verify
-            for _ in range(3):
-                await asyncio.sleep(1)
-                is_auto = await self._device.is_auto_mode()
-                expected = option == "Auto"
-                if is_auto == expected:
-                    self._attr_current_option = option
-                    self.async_write_ha_state()
-                    return
-            
-            _LOGGER.error("Mode change verification failed")
+            await asyncio.sleep(2)
+            await self._update_mode()
         except Exception as ex:
             _LOGGER.error("Failed to change mode: %s", ex)
 
