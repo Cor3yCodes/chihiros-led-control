@@ -14,7 +14,7 @@ from homeassistant.config_entries import ConfigFlow
 from homeassistant.const import CONF_ADDRESS
 from homeassistant.data_entry_flow import FlowResult
 
-from .chihiros_led_control.device import BaseDevice, get_model_class_from_name
+from .chihiros_led_control.device import BaseDevice, CODE2MODEL, get_model_class_from_name
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)

@@ -7,8 +7,10 @@ from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers import device_registry as dr
 
-from .const import DOMAIN
+from .const import DOMAIN, MANUFACTURER
 from .coordinator import ChihirosDataUpdateCoordinator
 from .models import ChihirosData
 
@@ -36,13 +38,13 @@ class ChihirosModeSelect(SelectEntity):
         self._attr_name = f"{device.name} Mode"
         self._attr_current_option = "Manual"
         
-        # Add device info to link this entity to the device
-        self._attr_device_info = {
-            "identifiers": {("bluetooth", coordinator.address)},
-            "name": device.name,
-            "manufacturer": "Chihiros",
-            "model": device._model_name,
-        }
+        # Match device info exactly with light entity
+        self._attr_device_info = DeviceInfo(
+            connections={(dr.CONNECTION_BLUETOOTH, coordinator.address)},
+            manufacturer=MANUFACTURER,
+            model=device._model_name,
+            name=device.name,
+        )
 
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""
