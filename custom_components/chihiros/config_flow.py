@@ -70,10 +70,11 @@ class ChihirosConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Handle the user step to pick discovered device."""
         if user_input is not None:
+            address = user_input[CONF_ADDRESS]
+            await self.async_set_unique_id(address.lower())
             return self.async_create_entry(
-                title=self._discovered_devices[user_input[CONF_ADDRESS]].name,
+                title=self._discovered_devices[address].name,
                 data={},
-                unique_id=user_input[CONF_ADDRESS].lower(),
             )
 
         current_addresses = self._async_current_ids()
@@ -90,7 +91,6 @@ class ChihirosConfigFlow(ConfigFlow, domain=DOMAIN):
                     if device_name.startswith(model_code):
                         is_valid = True
                         break
-                # Check for service UUID in service_data
                 if "6e400001-b5a3-f393-e0a9-e50e24dcca9e" in discovery.service_data:
                     is_valid = True
                 if is_valid:
