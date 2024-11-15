@@ -15,7 +15,6 @@ from homeassistant.components.bluetooth.passive_update_coordinator import (
 from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import DOMAIN, MANUFACTURER
-from .coordinator import ChihirosDataUpdateCoordinator
 from .models import ChihirosData
 
 _LOGGER = logging.getLogger(__name__)
