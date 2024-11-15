@@ -9,6 +9,10 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers import device_registry as dr
+from homeassistant.components.bluetooth.passive_update_coordinator import (
+    PassiveBluetoothCoordinatorEntity,
+)
+from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import DOMAIN, MANUFACTURER
 from .coordinator import ChihirosDataUpdateCoordinator
@@ -25,26 +29,40 @@ async def async_setup_entry(
     chihiros_data: ChihirosData = hass.data[DOMAIN][entry.entry_id]
     async_add_entities([ChihirosModeSelect(chihiros_data.coordinator, chihiros_data.device)])
 
-class ChihirosModeSelect(SelectEntity):
+class ChihirosModeSelect(
+    PassiveBluetoothCoordinatorEntity[ChihirosDataUpdateCoordinator],
+    SelectEntity,
+    RestoreEntity,
+):
     """Representation of a Chihiros mode select entity."""
 
     _attr_options = ["Manual", "Auto"]
 
     def __init__(self, coordinator: ChihirosDataUpdateCoordinator, device) -> None:
         """Initialize the select entity."""
-        self._coordinator = coordinator
+        super().__init__(coordinator)
         self._device = device
         self._attr_unique_id = f"{coordinator.address}_mode"
         self._attr_name = f"{device.name} Mode"
         self._attr_current_option = "Manual"
         
-        # Match device info exactly with light entity
         self._attr_device_info = DeviceInfo(
             connections={(dr.CONNECTION_BLUETOOTH, coordinator.address)},
             manufacturer=MANUFACTURER,
             model=device._model_name,
             name=device.name,
         )
+
+    async def async_added_to_hass(self) -> None:
+        """Handle entity about to be added to hass."""
+        await super().async_added_to_hass()
+        if last_state := await self.async_get_last_state():
+            self._attr_current_option = last_state.state
+
+    @property
+    def current_option(self) -> str:
+        """Return the current option."""
+        return self._attr_current_option
 
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""
