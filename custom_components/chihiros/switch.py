@@ -69,10 +69,14 @@ class ChihirosConnectionSwitch(SwitchEntity):
         try:
             await self._device._ensure_connected()
             self._attr_is_on = True
-            self._connection_retries = 0
+            # Update mode state after connection
+            if hasattr(self.hass, "async_add_executor_job"):
+                await self.hass.async_add_executor_job(
+                    self.hass.helpers.entity_component.async_update_entity,
+                    "select.chihiros_mode"
+                )
         except Exception as ex:
             _LOGGER.debug("Connection attempt failed: %s", ex)
-            self._connection_retries += 1
         finally:
             self.async_write_ha_state()
 

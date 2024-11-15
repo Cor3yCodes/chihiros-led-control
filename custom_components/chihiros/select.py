@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import logging
-import asyncio
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
@@ -84,4 +83,10 @@ class ChihirosModeSelect(SelectEntity, RestoreEntity):
 
     async def async_update(self) -> None:
         """Update the entity."""
-        await self._update_mode()
+        try:
+            if self._device.is_connected:
+                is_auto = await self._device.is_auto_mode()
+                self._attr_current_option = "Auto" if is_auto else "Manual"
+                self.async_write_ha_state()
+        except Exception as ex:
+            _LOGGER.error("Failed to update mode: %s", ex)
