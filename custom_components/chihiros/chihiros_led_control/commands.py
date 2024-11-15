@@ -132,11 +132,11 @@ def create_switch_to_auto_mode_command(msg_id: tuple[int, int]) -> bytearray:
     return _create_command_encoding(90, 5, msg_id, [18, 255, 255])
 
 
-def create_query_mode_command(msg_id: tuple[int, int]) -> bytes:
-    """Create command to query current mode."""
-    return bytes([0xAA, msg_id[0], msg_id[1], 0x01, 0x02, 0x00, 0x00])
+def create_query_mode_command(msg_id: tuple[int, int]) -> bytearray:
+    """Create query mode command."""
+    return _create_command_encoding(90, 5, msg_id, [17, 255, 255])
 
 
-def create_switch_to_manual_mode_command(msg_id: tuple[int, int]) -> bytes:
-    """Create command to switch to manual mode."""
-    return bytes([0xAA, msg_id[0], msg_id[1], 0x01, 0x01, 0x00, 0x00])
+def create_switch_to_manual_mode_command(msg_id: tuple[int, int]) -> bytearray:
+    """Create switch to manual mode command."""
+    return _create_command_encoding(90, 5, msg_id, [19, 255, 255])

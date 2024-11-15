@@ -247,12 +247,14 @@ class BaseDevice(ABC):
 
     async def is_auto_mode(self) -> bool:
         """Check if device is in auto mode."""
-        cmd = commands.create_query_mode_command(self.get_next_msg_id())
         try:
+            await self._ensure_connected()
+            cmd = commands.create_query_mode_command(self.get_next_msg_id())
             response = await self._send_command_and_read_response(cmd)
-            # Parse response to determine mode
-            # Typically byte 6 in response indicates mode (0x01 for auto, 0x00 for manual)
-            return response[6] == 0x01
+            self._logger.debug("Mode query response: %s", response.hex())
+            # Response format: AA XX XX 01 YY ZZ CC
+            # Where YY is the mode (0x01 for auto, 0x00 for manual)
+            return response[4] == 0x01
         except Exception as ex:
             self._logger.error("Failed to query mode: %s", ex)
             return False
@@ -263,7 +265,7 @@ class BaseDevice(ABC):
         await self._send_command(switch_cmd, 3)
 
     async def _send_command_and_read_response(
-        self, command: bytes, retry: int | None = None
+        self, command: bytes | bytearray, retry: int | None = None
     ) -> bytearray:
         """Send command to device and read response."""
         await self._send_command(command, retry)
@@ -273,12 +275,16 @@ class BaseDevice(ABC):
         def notification_handler(_sender: BleakGATTCharacteristic, data: bytearray) -> None:
             if not response_future.done():
                 response_future.set_result(data)
+                self._logger.debug("Received response: %s", data.hex())
         
         original_handler = self._notification_handler
         self._notification_handler = notification_handler
         
         try:
-            return await asyncio.wait_for(response_future, timeout=1.0)
+            return await asyncio.wait_for(response_future, timeout=2.0)
+        except asyncio.TimeoutError:
+            self._logger.error("Timeout waiting for response")
+            raise
         finally:
             self._notification_handler = original_handler
 
