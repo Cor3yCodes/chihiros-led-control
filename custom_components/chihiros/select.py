@@ -29,21 +29,18 @@ async def async_setup_entry(
     chihiros_data: ChihirosData = hass.data[DOMAIN][entry.entry_id]
     async_add_entities([ChihirosModeSelect(chihiros_data.coordinator, chihiros_data.device)])
 
-class ChihirosModeSelect(
-    PassiveBluetoothCoordinatorEntity[ChihirosDataUpdateCoordinator],
-    SelectEntity,
-    RestoreEntity,
-):
+class ChihirosModeSelect(SelectEntity, RestoreEntity):
     """Representation of a Chihiros mode select entity."""
 
     _attr_options = ["Manual", "Auto"]
+    _attr_has_entity_name = True
 
     def __init__(self, coordinator: ChihirosDataUpdateCoordinator, device) -> None:
         """Initialize the select entity."""
-        super().__init__(coordinator)
+        self._coordinator = coordinator
         self._device = device
         self._attr_unique_id = f"{coordinator.address}_mode"
-        self._attr_name = f"{device.name} Mode"
+        self._attr_name = "Mode"
         self._attr_current_option = "Manual"
         
         self._attr_device_info = DeviceInfo(
@@ -58,11 +55,6 @@ class ChihirosModeSelect(
         await super().async_added_to_hass()
         if last_state := await self.async_get_last_state():
             self._attr_current_option = last_state.state
-
-    @property
-    def current_option(self) -> str:
-        """Return the current option."""
-        return self._attr_current_option
 
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""
