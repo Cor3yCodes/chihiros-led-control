@@ -50,23 +50,12 @@ class ChihirosConnectionSwitch(SwitchEntity):
     @property
     def available(self) -> bool:
         """Return if entity is available."""
-        return self._coordinator.last_update_success
+        return self._device._client is not None
 
     @property
     def is_on(self) -> bool:
         """Return true if the switch is on."""
-        try:
-            return self._device.is_connected
-        except Exception:
-            return False
-
-    async def async_update(self) -> None:
-        """Update the entity."""
-        try:
-            is_connected = await self._device.is_connected()
-            self._attr_is_on = is_connected
-        except Exception:
-            self._attr_is_on = False
+        return self._device.is_connected
 
     async def async_turn_on(self, **kwargs) -> None:
         """Turn on the connection."""
