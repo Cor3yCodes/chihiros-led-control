@@ -46,7 +46,7 @@ class ChihirosModeSelect(SelectEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             connections={(dr.CONNECTION_BLUETOOTH, coordinator.address)},
             manufacturer=MANUFACTURER,
-            model=device._model_name,
+            model=device.model_name,
             name=device.name,
         )
 
