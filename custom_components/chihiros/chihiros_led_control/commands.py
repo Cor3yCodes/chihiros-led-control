@@ -139,4 +139,4 @@ def create_query_mode_command(msg_id: tuple[int, int]) -> bytearray:
 
 def create_switch_to_manual_mode_command(msg_id: tuple[int, int]) -> bytearray:
     """Create switch to manual mode command."""
-    return _create_command_encoding(90, 5, msg_id, [19, 255, 255])
+    return _create_command_encoding(90, 7, msg_id, [0, 100])
