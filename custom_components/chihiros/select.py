@@ -35,6 +35,14 @@ class ChihirosModeSelect(SelectEntity):
         self._attr_unique_id = f"{coordinator.address}_mode"
         self._attr_name = f"{device.name} Mode"
         self._attr_current_option = "Manual"
+        
+        # Add device info to link this entity to the device
+        self._attr_device_info = {
+            "identifiers": {("bluetooth", coordinator.address)},
+            "name": device.name,
+            "manufacturer": "Chihiros",
+            "model": device._model_name,
+        }
 
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""
