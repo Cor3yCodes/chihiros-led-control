@@ -24,7 +24,6 @@ from homeassistant.helpers.restore_state import RestoreEntity
 
 from .chihiros_led_control.device import BaseDevice
 from .const import DOMAIN, MANUFACTURER
-from .coordinator import ChihirosDataUpdateCoordinator
 from .models import ChihirosData
 
 _LOGGER = logging.getLogger(__name__)
@@ -68,7 +67,7 @@ class ChihirosLightEntity(
 
     def __init__(
         self,
-        coordinator: ChihirosDataUpdateCoordinator,
+        coordinator: PassiveBluetoothDataUpdateCoordinator,
         chihiros_device: BaseDevice,
         config_entry: ConfigEntry,
         color: str,
