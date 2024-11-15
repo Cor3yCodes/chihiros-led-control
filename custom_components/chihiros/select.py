@@ -29,7 +29,7 @@ async def async_setup_entry(
     chihiros_data: ChihirosData = hass.data[DOMAIN][entry.entry_id]
     async_add_entities([ChihirosModeSelect(chihiros_data.coordinator, chihiros_data.device)])
 
-class ChihirosModeSelect(SelectEntity, RestoreEntity):
+class ChihirosModeSelect(SelectEntity):
     """Representation of a Chihiros mode select entity."""
 
     _attr_options = ["Manual", "Auto"]
@@ -49,12 +49,6 @@ class ChihirosModeSelect(SelectEntity, RestoreEntity):
             model=device.model_name,
             name=device.name,
         )
-
-    async def async_added_to_hass(self) -> None:
-        """Handle entity about to be added to hass."""
-        await super().async_added_to_hass()
-        if last_state := await self.async_get_last_state():
-            self._attr_current_option = last_state.state
 
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""

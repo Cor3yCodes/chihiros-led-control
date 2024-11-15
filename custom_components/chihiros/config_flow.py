@@ -90,7 +90,8 @@ class ChihirosConfigFlow(ConfigFlow, domain=DOMAIN):
                     if device_name.startswith(model_code):
                         is_valid = True
                         break
-                if discovery.service_data_uuid == "6e400001-b5a3-f393-e0a9-e50e24dcca9e":
+                # Check for service UUID in service_data
+                if "6e400001-b5a3-f393-e0a9-e50e24dcca9e" in discovery.service_data:
                     is_valid = True
                 if is_valid:
                     self._discovered_devices[address] = discovery
