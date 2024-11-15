@@ -70,15 +70,15 @@ class ChihirosModeSelect(SelectEntity, RestoreEntity):
 
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""
-        _LOGGER.debug("Changing mode to: %s", option)
         try:
             if option == "Auto":
                 await self._device.enable_auto_mode()
             else:
                 await self._device.disable_auto_mode()
             
-            await asyncio.sleep(2)
-            await self._update_mode()
+            self._attr_current_option = option
+            self.async_write_ha_state()
+            
         except Exception as ex:
             _LOGGER.error("Failed to change mode: %s", ex)
 
