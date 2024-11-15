@@ -38,7 +38,6 @@ class ChihirosModeSelect(SelectEntity, RestoreEntity):
 
     def __init__(self, coordinator: PassiveBluetoothDataUpdateCoordinator, device) -> None:
         """Initialize the select entity."""
-        super().__init__(coordinator)
         self._coordinator = coordinator
         self._device = device
         self._attr_unique_id = f"{coordinator.address}_mode"
