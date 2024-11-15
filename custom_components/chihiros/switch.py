@@ -39,6 +39,8 @@ class ChihirosConnectionSwitch(SwitchEntity):
         self._attr_unique_id = f"{coordinator.address}_connection"
         self._attr_name = "Connection"
         self._attr_is_on = True
+        self._connection_retries = 0
+        self._max_retries = 3
         
         self._attr_device_info = DeviceInfo(
             connections={(dr.CONNECTION_BLUETOOTH, coordinator.address)},
@@ -50,21 +52,44 @@ class ChihirosConnectionSwitch(SwitchEntity):
     @property
     def available(self) -> bool:
         """Return if entity is available."""
+        if self._connection_retries < self._max_retries:
+            return True
         return self._device._client is not None
 
     @property
     def is_on(self) -> bool:
         """Return true if the switch is on."""
-        return self._device.is_connected
+        try:
+            return self._device.is_connected
+        except Exception:
+            return False
 
     async def async_turn_on(self, **kwargs) -> None:
         """Turn on the connection."""
-        await self._device._ensure_connected()
-        self._attr_is_on = True
-        self.async_write_ha_state()
+        try:
+            await self._device._ensure_connected()
+            self._attr_is_on = True
+            self._connection_retries = 0
+        except Exception as ex:
+            _LOGGER.debug("Connection attempt failed: %s", ex)
+            self._connection_retries += 1
+        finally:
+            self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs) -> None:
         """Turn off the connection."""
-        await self._device.disconnect()
-        self._attr_is_on = False
-        self.async_write_ha_state()
+        try:
+            await self._device.disconnect()
+            self._attr_is_on = False
+        except Exception as ex:
+            _LOGGER.debug("Disconnect attempt failed: %s", ex)
+        finally:
+            self.async_write_ha_state()
+
+    async def async_added_to_hass(self) -> None:
+        """Handle entity about to be added to hass."""
+        await super().async_added_to_hass()
+        try:
+            await self.async_turn_on()
+        except Exception as ex:
+            _LOGGER.debug("Initial connection attempt failed: %s", ex)
