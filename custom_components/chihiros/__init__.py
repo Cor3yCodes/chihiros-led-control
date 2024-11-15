@@ -13,7 +13,7 @@ try:
 
     # TODO List the platforms that you want to support.
     # For your initial PR, limit it to 1 platform.
-    PLATFORMS: list[Platform] = [Platform.LIGHT, Platform.SELECT]
+    PLATFORMS: list[Platform] = [Platform.LIGHT, Platform.SELECT, Platform.SWITCH]
 except ModuleNotFoundError:
     pass
 
