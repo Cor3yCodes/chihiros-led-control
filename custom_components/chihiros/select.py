@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import asyncio
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
@@ -28,7 +29,7 @@ async def async_setup_entry(
     chihiros_data: ChihirosData = hass.data[DOMAIN][entry.entry_id]
     async_add_entities([ChihirosModeSelect(chihiros_data.coordinator, chihiros_data.device)])
 
-class ChihirosModeSelect(SelectEntity):
+class ChihirosModeSelect(SelectEntity, RestoreEntity):
     """Representation of a Chihiros mode select entity."""
 
     _attr_options = ["Manual", "Auto"]
@@ -49,9 +50,30 @@ class ChihirosModeSelect(SelectEntity):
             name=device.name,
         )
 
+    async def async_added_to_hass(self) -> None:
+        """Handle entity about to be added to hass."""
+        await super().async_added_to_hass()
+        if last_state := await self.async_get_last_state():
+            self._attr_current_option = last_state.state
+            # Verify actual device state
+            try:
+                is_auto = await self._device.is_auto_mode()
+                self._attr_current_option = "Auto" if is_auto else "Manual"
+                self.async_write_ha_state()
+            except Exception as ex:
+                _LOGGER.error("Failed to verify mode: %s", ex)
+
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""
-        if option == "Auto":
-            await self._device.enable_auto_mode()
-        self._attr_current_option = option
-        self.async_write_ha_state()
+        try:
+            if option == "Auto":
+                await self._device.enable_auto_mode()
+            else:
+                await self._device.disable_auto_mode()
+            # Verify the change was successful
+            await asyncio.sleep(0.5)
+            is_auto = await self._device.is_auto_mode()
+            self._attr_current_option = "Auto" if is_auto else "Manual"
+            self.async_write_ha_state()
+        except Exception as ex:
+            _LOGGER.error("Failed to change mode: %s", ex)

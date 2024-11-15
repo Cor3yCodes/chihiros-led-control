@@ -245,6 +245,43 @@ class BaseDevice(ABC):
         await self._send_command(switch_cmd, 3)
         await self._send_command(time_cmd, 3)
 
+    async def is_auto_mode(self) -> bool:
+        """Check if device is in auto mode."""
+        cmd = commands.create_query_mode_command(self.get_next_msg_id())
+        try:
+            response = await self._send_command_and_read_response(cmd)
+            # Parse response to determine mode
+            # Typically byte 6 in response indicates mode (0x01 for auto, 0x00 for manual)
+            return response[6] == 0x01
+        except Exception as ex:
+            self._logger.error("Failed to query mode: %s", ex)
+            return False
+
+    async def disable_auto_mode(self) -> None:
+        """Disable auto mode of the light."""
+        switch_cmd = commands.create_switch_to_manual_mode_command(self.get_next_msg_id())
+        await self._send_command(switch_cmd, 3)
+
+    async def _send_command_and_read_response(
+        self, command: bytes, retry: int | None = None
+    ) -> bytearray:
+        """Send command to device and read response."""
+        await self._send_command(command, retry)
+        # Wait for notification response
+        response_future = asyncio.Future()
+        
+        def notification_handler(_sender: BleakGATTCharacteristic, data: bytearray) -> None:
+            if not response_future.done():
+                response_future.set_result(data)
+        
+        original_handler = self._notification_handler
+        self._notification_handler = notification_handler
+        
+        try:
+            return await asyncio.wait_for(response_future, timeout=1.0)
+        finally:
+            self._notification_handler = original_handler
+
     # Bluetooth methods
 
     async def _send_command(
@@ -450,3 +487,8 @@ class BaseDevice(ABC):
             DISCONNECT_DELAY,
         )
         await self._execute_disconnect()
+
+    @property
+    def is_connected(self) -> bool:
+        """Return True if device is connected."""
+        return self._client is not None and self._client.is_connected
