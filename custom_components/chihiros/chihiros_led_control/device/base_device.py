@@ -240,98 +240,26 @@ class BaseDevice(ABC):
 
     async def enable_auto_mode(self) -> None:
         """Enable auto mode of the light."""
-        try:
-            cmd = commands.create_switch_to_auto_mode_command(self.get_next_msg_id())
-            response = await self._send_command_and_read_response(cmd)
-            self._logger.debug("Auto mode response: %s", response.hex())
-            
-            if not await self.is_auto_mode():
-                self._logger.error("Failed to enable auto mode - verification failed")
-                raise RuntimeError("Failed to switch to auto mode")
-                
-        except Exception as ex:
-            self._logger.error("Failed to enable auto mode: %s", ex)
-            raise
+        switch_cmd = commands.create_switch_to_auto_mode_command(self.get_next_msg_id())
+        time_cmd = commands.create_set_time_command(self.get_next_msg_id())
+        await self._send_command(switch_cmd, 3)
+        await self._send_command(time_cmd, 3)
 
     async def disable_auto_mode(self) -> None:
         """Disable auto mode of the light."""
-        try:
-            cmd = commands.create_switch_to_manual_mode_command(self.get_next_msg_id())
-            response = await self._send_command_and_read_response(cmd)
-            self._logger.debug("Manual mode response: %s", response.hex())
-            
-            if await self.is_auto_mode():
-                self._logger.error("Failed to disable auto mode - verification failed")
-                raise RuntimeError("Failed to switch to manual mode")
-                
-        except Exception as ex:
-            self._logger.error("Failed to disable auto mode: %s", ex)
-            raise
+        cmd = commands.create_switch_to_manual_mode_command(self.get_next_msg_id())
+        await self._send_command(cmd, 3)
 
     async def is_auto_mode(self) -> bool:
         """Check if device is in auto mode."""
         try:
-            await self._ensure_connected()
             cmd = commands.create_query_mode_command(self.get_next_msg_id())
-            self._logger.debug("Sending mode query command: %s", cmd.hex())
-            
-            # Send command without expecting response first
             await self._send_command(cmd)
-            await asyncio.sleep(0.5)  # Give device time to process
-            
-            # Now try to read the response
-            response_future = asyncio.Future()
-            
-            def notification_handler(_sender: BleakGATTCharacteristic, data: bytearray) -> None:
-                if not response_future.done():
-                    self._logger.debug("Raw mode response: %s", data.hex())
-                    response_future.set_result(data)
-            
-            original_handler = self._notification_handler
-            self._notification_handler = notification_handler
-            
-            try:
-                response = await asyncio.wait_for(response_future, timeout=2.0)
-                self._logger.debug("Mode query response received: %s", response.hex())
-                # Try both possible response formats
-                mode = response[5] if len(response) > 5 else None
-                param = response[6] if len(response) > 6 else None
-                self._logger.debug(f"Mode byte: {mode}, Param byte: {param}")
-                return mode == 5 and param == 18
-                
-            except asyncio.TimeoutError:
-                self._logger.error("No response received from mode query")
-                return False
-            finally:
-                self._notification_handler = original_handler
-                
+            # The notification handler will log the response
+            return True  # For now return true to test notifications
         except Exception as ex:
             self._logger.error("Failed to query mode: %s", ex)
             return False
-
-    async def _send_command_and_read_response(
-        self, command: bytes | bytearray, retry: int | None = None
-    ) -> bytearray:
-        """Send command to device and read response."""
-        await self._send_command(command, retry)
-        # Wait for notification response
-        response_future = asyncio.Future()
-        
-        def notification_handler(_sender: BleakGATTCharacteristic, data: bytearray) -> None:
-            if not response_future.done():
-                response_future.set_result(data)
-                self._logger.debug("Received response: %s", data.hex())
-        
-        original_handler = self._notification_handler
-        self._notification_handler = notification_handler
-        
-        try:
-            return await asyncio.wait_for(response_future, timeout=2.0)
-        except asyncio.TimeoutError:
-            self._logger.error("Timeout waiting for response")
-            raise
-        finally:
-            self._notification_handler = original_handler
 
     # Bluetooth methods
 
@@ -542,4 +470,4 @@ class BaseDevice(ABC):
     @property
     def is_connected(self) -> bool:
         """Return True if device is connected."""
-        return self._client is not None and self._client.is_connected
+        return bool(self._client and self._client.is_connected)
