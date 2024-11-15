@@ -10,7 +10,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers import device_registry as dr
 from homeassistant.components.bluetooth.passive_update_coordinator import (
-    PassiveBluetoothCoordinatorEntity,
+    PassiveBluetoothDataUpdateCoordinator
 )
 from homeassistant.helpers.restore_state import RestoreEntity
 
@@ -35,7 +35,7 @@ class ChihirosModeSelect(SelectEntity):
     _attr_options = ["Manual", "Auto"]
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator: ChihirosDataUpdateCoordinator, device) -> None:
+    def __init__(self, coordinator: PassiveBluetoothDataUpdateCoordinator, device) -> None:
         """Initialize the select entity."""
         self._coordinator = coordinator
         self._device = device

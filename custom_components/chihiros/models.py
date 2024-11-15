@@ -5,7 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from .chihiros_led_control.device import BaseDevice
-from .coordinator import ChihirosDataUpdateCoordinator
+from homeassistant.components.bluetooth.passive_update_coordinator import (
+    PassiveBluetoothDataUpdateCoordinator
+)
 
 
 @dataclass
@@ -14,4 +16,4 @@ class ChihirosData:
 
     title: str
     device: BaseDevice
-    coordinator: ChihirosDataUpdateCoordinator
+    coordinator: PassiveBluetoothDataUpdateCoordinator

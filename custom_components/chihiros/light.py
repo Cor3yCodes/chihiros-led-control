@@ -7,13 +7,12 @@ from typing import Any
 
 from homeassistant.components.bluetooth.passive_update_coordinator import (
     PassiveBluetoothCoordinatorEntity,
+    PassiveBluetoothDataUpdateCoordinator,
 )
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
-    ATTR_EFFECT,
     ColorMode,
     LightEntity,
-    LightEntityFeature,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_ON
@@ -56,7 +55,7 @@ async def async_setup_entry(
 
 
 class ChihirosLightEntity(
-    PassiveBluetoothCoordinatorEntity[ChihirosDataUpdateCoordinator],
+    PassiveBluetoothCoordinatorEntity[PassiveBluetoothDataUpdateCoordinator],
     LightEntity,
     RestoreEntity,
 ):
@@ -66,8 +65,6 @@ class ChihirosLightEntity(
     _attr_should_poll = False
     _attr_supported_color_modes = {ColorMode.BRIGHTNESS}
     _attr_color_mode = ColorMode.BRIGHTNESS
-    _attr_supported_features = LightEntityFeature.EFFECT
-    _attr_effect_list = ["Manual", "Auto"]
 
     def __init__(
         self,
@@ -76,7 +73,7 @@ class ChihirosLightEntity(
         config_entry: ConfigEntry,
         color: str,
     ) -> None:
-        """Initialise the entity."""
+        """Initialize the entity."""
         super().__init__(coordinator)
         self._device = chihiros_device
         self._address = coordinator.address
@@ -128,10 +125,6 @@ class ChihirosLightEntity(
         self._attr_available = True
         self.schedule_update_ha_state()
         _LOGGER.debug("Turned on: %s", self.name)
-        if ATTR_EFFECT in kwargs:
-            if kwargs[ATTR_EFFECT] == "Auto":
-                _LOGGER.debug("Enabling auto mode: %s", self.name)
-                await self._device.enable_auto_mode()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Instruct the light to turn off."""

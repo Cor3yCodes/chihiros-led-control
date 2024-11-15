@@ -19,8 +19,10 @@ except ModuleNotFoundError:
 
 from .chihiros_led_control.device import BaseDevice, get_model_class_from_name
 from .const import DOMAIN
-from .coordinator import ChihirosDataUpdateCoordinator
 from .models import ChihirosData
+from homeassistant.components.bluetooth.passive_update_coordinator import (
+    PassiveBluetoothDataUpdateCoordinator,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -43,10 +45,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # TODO add password support
     chihiros_device: BaseDevice = model_class(ble_device)
 
-    coordinator = ChihirosDataUpdateCoordinator(
+    coordinator = PassiveBluetoothDataUpdateCoordinator(
         hass,
-        chihiros_device,
-        ble_device,
+        _LOGGER,
+        ble_device.address,
+        bluetooth.BluetoothScanningMode.ACTIVE,
     )
 
     hass.data.setdefault(DOMAIN, {})
