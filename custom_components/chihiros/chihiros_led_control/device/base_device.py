@@ -240,18 +240,14 @@ class BaseDevice(ABC):
 
     async def enable_auto_mode(self) -> None:
         """Enable auto mode of the light."""
-        # Command ID: 90, Mode: 5, Parameters: [18, 255, 255]
-        switch_cmd = commands.create_switch_to_auto_mode_command(self.get_next_msg_id())
-        time_cmd = commands.create_set_time_command(self.get_next_msg_id())
-        
         try:
-            await self._send_command(switch_cmd)
-            await asyncio.sleep(1)  # Give device time to process mode change
-            await self._send_command(time_cmd)
+            cmd = commands.create_switch_to_auto_mode_command(self.get_next_msg_id())
+            response = await self._send_command_and_read_response(cmd)
+            self._logger.debug("Auto mode response: %s", response.hex())
             
-            # Verify mode change
             if not await self.is_auto_mode():
                 self._logger.error("Failed to enable auto mode - verification failed")
+                raise RuntimeError("Failed to switch to auto mode")
                 
         except Exception as ex:
             self._logger.error("Failed to enable auto mode: %s", ex)
@@ -259,17 +255,14 @@ class BaseDevice(ABC):
 
     async def disable_auto_mode(self) -> None:
         """Disable auto mode of the light."""
-        # Command ID: 90, Mode: 7, Parameters: [Color, Brightness]
-        # We'll set it to manual mode with current brightness
-        switch_cmd = commands.create_switch_to_manual_mode_command(self.get_next_msg_id())
-        
         try:
-            await self._send_command(switch_cmd)
-            await asyncio.sleep(1)  # Give device time to process mode change
+            cmd = commands.create_switch_to_manual_mode_command(self.get_next_msg_id())
+            response = await self._send_command_and_read_response(cmd)
+            self._logger.debug("Manual mode response: %s", response.hex())
             
-            # Verify mode change
             if await self.is_auto_mode():
                 self._logger.error("Failed to disable auto mode - verification failed")
+                raise RuntimeError("Failed to switch to manual mode")
                 
         except Exception as ex:
             self._logger.error("Failed to disable auto mode: %s", ex)

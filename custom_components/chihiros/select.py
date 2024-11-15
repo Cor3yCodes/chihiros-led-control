@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import asyncio
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
@@ -60,10 +61,11 @@ class ChihirosModeSelect(SelectEntity, RestoreEntity):
     async def _update_mode(self) -> None:
         """Update mode from device."""
         try:
-            is_auto = await self._device.is_auto_mode()
-            _LOGGER.debug("Current device mode: %s", "Auto" if is_auto else "Manual")
-            self._attr_current_option = "Auto" if is_auto else "Manual"
-            self.async_write_ha_state()
+            if self._device.is_connected:
+                is_auto = await self._device.is_auto_mode()
+                _LOGGER.debug("Current device mode: %s", "Auto" if is_auto else "Manual")
+                self._attr_current_option = "Auto" if is_auto else "Manual"
+                self.async_write_ha_state()
         except Exception as ex:
             _LOGGER.error("Failed to verify mode: %s", ex)
 
@@ -75,8 +77,11 @@ class ChihirosModeSelect(SelectEntity, RestoreEntity):
             else:
                 await self._device.disable_auto_mode()
             
-            self._attr_current_option = option
-            self.async_write_ha_state()
+            # Wait a moment for the mode change to take effect
+            await asyncio.sleep(1)
+            
+            # Verify the mode change
+            await self._update_mode()
             
         except Exception as ex:
             _LOGGER.error("Failed to change mode: %s", ex)
